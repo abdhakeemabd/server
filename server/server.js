@@ -1,22 +1,24 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '10mb' })); // Increased limit to handle base64 images
 
 // Database Setup
-const dbPath = path.resolve(__dirname, 'database.sqlite');
+const dbFileName = process.env.DB_FILENAME || 'database.sqlite';
+const dbPath = path.resolve(__dirname, dbFileName);
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error('Error opening database', err.message);
   } else {
-    console.log('Connected to the SQLite database.');
+    console.log(`Connected to the SQLite database (${dbFileName}).`);
     // Create Inventory table if not exists
     db.run(`CREATE TABLE IF NOT EXISTS inventory (
       id TEXT PRIMARY KEY,
@@ -36,6 +38,18 @@ const db = new sqlite3.Database(dbPath, (err) => {
 // 1. Get all inventory items
 app.get('/api/inventory', (req, res) => {
   db.all('SELECT * FROM inventory ORDER BY createdAt DESC', [], (err, rows) => {
+    if (err) {
+      res.status(400).json({ error: err.message });
+      return;
+    }
+    res.json(rows);
+  });
+});
+
+// 1.5 Get inventory items added in the last 24 hours (last day)
+app.get('/api/inventory/recent', (req, res) => {
+  const sql = "SELECT * FROM inventory WHERE datetime(createdAt) >= datetime('now', '-1 day') ORDER BY createdAt DESC";
+  db.all(sql, [], (err, rows) => {
     if (err) {
       res.status(400).json({ error: err.message });
       return;
