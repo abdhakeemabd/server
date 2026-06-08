@@ -4,6 +4,9 @@ import { persist } from 'zustand/middleware';
 // Helper to generate IDs
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
+// Base API URL for backend calls. Falls back to Render URL if env var is not set.
+const API_URL = import.meta.env.VITE_API_URL || 'https://foood-q-backend.onrender.com';
+
 export const useDbStore = create(
   persist(
     (set, get) => ({
@@ -46,7 +49,7 @@ export const useDbStore = create(
       // Fetch inventory from Node backend
       fetchInventory: async () => {
         try {
-          const res = await fetch('http://localhost:5000/api/inventory');
+          const res = await fetch(`${API_URL}/api/inventory`);
           const data = await res.json();
           // Backend createdAt vs frontend createdDate mapping is fine, we just replace local state
           set({ inventory: data });
@@ -69,7 +72,7 @@ export const useDbStore = create(
 
         if (collection === 'inventory') {
           try {
-            await fetch('http://localhost:5000/api/inventory', {
+            await fetch(`${API_URL}/api/inventory`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ ...newRecord, createdAt: newRecord.createdDate })
@@ -95,7 +98,7 @@ export const useDbStore = create(
       updateRecord: async (collection, id, data, user) => {
         if (collection === 'inventory') {
           try {
-            await fetch(`http://localhost:5000/api/inventory/${id}`, {
+            await fetch(`${API_URL}/api/inventory/${id}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(data)
@@ -126,7 +129,7 @@ export const useDbStore = create(
         if (collection === 'inventory') {
           try {
             // Soft delete via PUT
-            await fetch(`http://localhost:5000/api/inventory/${id}`, {
+            await fetch(`${API_URL}/api/inventory/${id}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ status: 'Archived' })
